@@ -1,0 +1,44 @@
+﻿@page "/quiz/{quizId:int}"
+@using HistoryQuizApp.Data
+@inject QuizService QuizService
+@inject NavigationManager NavigationManager
+
+@code {
+    [Parameter] public int QuizId { get; set; }
+    private HistoryQuizApp.Data.Quiz quiz;
+    private int currentQuestionIndex = 0;
+    private string userAnswer = string.Empty;
+    private int score = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        quiz = await QuizService.GetQuizByIdAsync(QuizId);
+    }
+
+    private async Task SubmitAnswer()
+    {
+        var currentQuestion = quiz.Questions[currentQuestionIndex];
+        await QuizService.SubmitAnswerAsync(1, quiz.Id, currentQuestion.Id, userAnswer); // Assuming user ID 1 for now
+        score = await QuizService.GetUserScoreAsync(1, quiz.Id);
+
+        currentQuestionIndex++;
+        userAnswer = string.Empty;
+
+        if (currentQuestionIndex >= quiz.Questions.Count)
+        {
+            NavigationManager.NavigateTo($"/quiz-result/{quiz.Id}");
+        }
+    }
+}
+
+<div>
+    @if (quiz != null)
+    {
+        <h3>@quiz.Title</h3>
+        <div>
+            <p>@quiz.Questions[currentQuestionIndex].Text</p>
+            <input type="text" @bind="userAnswer" />
+            <button @onclick="SubmitAnswer">Submit</button>
+        </div>
+    }
+</div>

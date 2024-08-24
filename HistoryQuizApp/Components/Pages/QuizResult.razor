@@ -1,0 +1,18 @@
+﻿@page "/quiz-result/{quizId:int}"
+@using HistoryQuizApp.Data
+@inject QuizService QuizService
+
+@code {
+    [Parameter] public int QuizId { get; set; }
+    private int score = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        score = await QuizService.GetUserScoreAsync(1, QuizId); // Assuming user ID 1 for now
+    }
+}
+
+<div>
+    <h3>Your Score: @score</h3>
+    <a href="/">Return to Home</a>
+</div>
