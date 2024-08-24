@@ -6,6 +6,7 @@
         public string Username { get; set; }
         public string Email { get; set; }
         public List<UserProgress> Progress { get; set; }
+        public List<Badge> Badges { get; set; }
     }
 
 }

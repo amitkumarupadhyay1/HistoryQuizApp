@@ -9,6 +9,7 @@ namespace HistoryQuizApp.Data
         public DbSet<Quiz> Quizzes { get; set; }
         public DbSet<Question> Questions { get; set; }
         public DbSet<UserProgress> UserProgresses { get; set; }
+        public DbSet<Badge> Badges{ get; set; }
     }
 
 }

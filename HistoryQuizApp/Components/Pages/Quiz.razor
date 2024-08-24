@@ -9,16 +9,26 @@
     private int currentQuestionIndex = 0;
     private string userAnswer = string.Empty;
     private int score = 0;
+    private string feedbackMessage;
+
 
     protected override async Task OnInitializedAsync()
     {
-        quiz = await QuizService.GetQuizByIdAsync(QuizId);
+        quiz = new HistoryQuizApp.Data.Quiz
+            {
+                Id = QuizId,
+                Questions = await QuizService.GetAdaptiveQuizAsync(QuizId, 1) // Assuming user ID 1 for now
+            };
     }
 
     private async Task SubmitAnswer()
     {
         var currentQuestion = quiz.Questions[currentQuestionIndex];
-        await QuizService.SubmitAnswerAsync(1, quiz.Id, currentQuestion.Id, userAnswer); // Assuming user ID 1 for now
+        bool isCorrect = currentQuestion.Answer == userAnswer;
+
+        feedbackMessage = isCorrect ? "Correct!" : $"Incorrect. The correct answer is {currentQuestion.Answer}.";
+
+        await QuizService.SubmitAnswerAsync(1, quiz.Id, currentQuestion.Id, userAnswer);
         score = await QuizService.GetUserScoreAsync(1, quiz.Id);
 
         currentQuestionIndex++;
@@ -41,4 +51,5 @@
             <button @onclick="SubmitAnswer">Submit</button>
         </div>
     }
+    <p>@feedbackMessage</p>
 </div>

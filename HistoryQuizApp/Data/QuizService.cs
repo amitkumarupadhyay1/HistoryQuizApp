@@ -42,7 +42,45 @@ namespace HistoryQuizApp.Data
 
             await _context.SaveChangesAsync();
         }
+        public async Task<List<Question>> GetQuestionsByDifficultyAsync(int quizId, string difficultyLevel)
+        {
+            return await _context.Questions
+                .Where(q => q.Id == quizId && q.DifficultyLevel == difficultyLevel)
+                .ToListAsync();
+        }
 
+        public async Task<List<Question>> GetAdaptiveQuizAsync(int quizId, int userId)
+        {
+            var userProgress = await _context.UserProgresses
+                .FirstOrDefaultAsync(up => up.UserId == userId && up.QuizId == quizId);
+
+            string difficultyLevel = "Easy";
+            if (userProgress != null)
+            {
+                if (userProgress.Score > 5)
+                {
+                    difficultyLevel = "Medium";
+                }
+                if (userProgress.Score > 10)
+                {
+                    difficultyLevel = "Hard";
+                }
+            }
+
+            return await GetQuestionsByDifficultyAsync(quizId, difficultyLevel);
+        }
+
+        public async Task AwardBadgeAsync(int userId, string badgeName)
+        {
+            var user = await _context.Users.Include(u => u.Badges).FirstOrDefaultAsync(u => u.Id == userId);
+            var badge = await _context.Badges.FirstOrDefaultAsync(b => b.Name == badgeName);
+
+            if (badge != null && !user.Badges.Contains(badge))
+            {
+                user.Badges.Add(badge);
+                await _context.SaveChangesAsync();
+            }
+        }
         public async Task<int> GetUserScoreAsync(int userId, int quizId)
         {
             var userProgress = await _context.UserProgresses
