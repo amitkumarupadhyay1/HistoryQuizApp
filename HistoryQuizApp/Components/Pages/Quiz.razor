@@ -1,55 +1,154 @@
-﻿@page "/quiz/{quizId:int}"
+﻿@page "/quiz"
+@rendermode InteractiveServer
 @using HistoryQuizApp.Data
 @inject QuizService QuizService
 @inject NavigationManager NavigationManager
 
 @code {
-    [Parameter] public int QuizId { get; set; }
     private HistoryQuizApp.Data.Quiz quiz;
     private int currentQuestionIndex = 0;
-    private string userAnswer = string.Empty;
+    private string selectedAnswer;
     private int score = 0;
     private string feedbackMessage;
-
+    private List<HistoryQuizApp.Data.Quiz> availableQuizzes;
+    private int selectedQuizId;
 
     protected override async Task OnInitializedAsync()
     {
-        quiz = new HistoryQuizApp.Data.Quiz
+        try
+        {
+            // Retrieve the list of available quizzes
+            availableQuizzes = await QuizService.GetAvailableQuizzesAsync();
+            if (availableQuizzes == null || !availableQuizzes.Any())
             {
-                Id = QuizId,
-                Questions = await QuizService.GetAdaptiveQuizAsync(QuizId, 1) // Assuming user ID 1 for now
-            };
+                feedbackMessage = "No quizzes available.";
+                return;
+            }
+
+            // Set a default quiz or prompt the user to select one
+            selectedQuizId = availableQuizzes.First().Id; // Default to the first quiz
+            await LoadQuizAsync(selectedQuizId);
+        }
+        catch (Exception ex)
+        {
+            feedbackMessage = $"Error loading quizzes: {ex.Message}";
+        }
+    }
+
+    private async Task LoadQuizAsync(int quizId)
+    {
+        try
+        {
+            quiz = await QuizService.GetQuizByIdAsync(quizId);
+            Console.WriteLine($"Loaded Quiz Title: {quiz?.Title}");
+            Console.WriteLine($"Total Questions: {quiz?.Questions?.Count}");
+
+            if (quiz == null || quiz.Questions == null || !quiz.Questions.Any())
+            {
+                feedbackMessage = "No quiz data available.";
+                return;
+            }
+
+            currentQuestionIndex = 0; // Reset question index for new quiz
+            feedbackMessage = null; // Clear any previous feedback message
+        }
+        catch (Exception ex)
+        {
+            feedbackMessage = $"Error loading quiz: {ex.Message}";
+        }
     }
 
     private async Task SubmitAnswer()
     {
-        var currentQuestion = quiz.Questions[currentQuestionIndex];
-        bool isCorrect = currentQuestion.Answer == userAnswer;
-
-        feedbackMessage = isCorrect ? "Correct!" : $"Incorrect. The correct answer is {currentQuestion.Answer}.";
-
-        await QuizService.SubmitAnswerAsync(1, quiz.Id, currentQuestion.Id, userAnswer);
-        score = await QuizService.GetUserScoreAsync(1, quiz.Id);
-
-        currentQuestionIndex++;
-        userAnswer = string.Empty;
-
-        if (currentQuestionIndex >= quiz.Questions.Count)
+        try
         {
-            NavigationManager.NavigateTo($"/quiz-result/{quiz.Id}");
+            Console.WriteLine("SubmitAnswer method called.");
+            Console.WriteLine($"Current Question Index: {currentQuestionIndex}");
+            Console.WriteLine($"Total Questions: {quiz?.Questions.Count}");
+
+            if (quiz == null || currentQuestionIndex >= quiz.Questions.Count)
+            {
+                feedbackMessage = "No more questions available.";
+                return;
+            }
+
+            var currentQuestion = quiz.Questions[currentQuestionIndex];
+
+            if (string.IsNullOrWhiteSpace(selectedAnswer))
+            {
+                feedbackMessage = "Please select an answer.";
+                return;
+            }
+
+            bool isCorrect = currentQuestion.Answer.Equals(selectedAnswer, StringComparison.OrdinalIgnoreCase);
+            feedbackMessage = isCorrect ? "Correct!" : $"Incorrect. The correct answer is {currentQuestion.Answer}.";
+
+            await QuizService.SubmitAnswerAsync(1, quiz.Id, currentQuestion.Id, selectedAnswer.Trim());
+            score = await QuizService.GetUserScoreAsync(1, quiz.Id);
+
+            // Move to the next question
+            currentQuestionIndex++;
+
+            if (currentQuestionIndex < quiz.Questions.Count)
+            {
+                // Load the next question
+                selectedAnswer = null; // Clear previous selection
+                StateHasChanged(); // Force re-render
+            }
+            else
+            {
+                // Navigate to the results page if no more questions
+                NavigationManager.NavigateTo($"/quiz-result/{quiz.Id}");
+            }
         }
+        catch (Exception ex)
+        {
+            feedbackMessage = $"Error submitting answer: {ex.Message}";
+        }
+    }
+
+    private async Task OnQuizSelectionChanged(ChangeEventArgs e)
+    {
+        selectedQuizId = int.Parse(e.Value.ToString());
+        await LoadQuizAsync(selectedQuizId);
     }
 }
 
 <div>
-    @if (quiz != null)
+    @if (availableQuizzes != null && availableQuizzes.Any())
+    {
+        <select @onchange="OnQuizSelectionChanged">
+            @foreach (var quiz in availableQuizzes)
+            {
+                <option value="@quiz.Id">@quiz.Title</option>
+            }
+        </select>
+    }
+
+    @if (quiz != null && currentQuestionIndex >= 0 && currentQuestionIndex < quiz.Questions.Count)
     {
         <h3>@quiz.Title</h3>
         <div>
             <p>@quiz.Questions[currentQuestionIndex].Text</p>
-            <input type="text" @bind="userAnswer" />
-            <button @onclick="SubmitAnswer">Submit</button>
+            @foreach (var option in quiz.Questions[currentQuestionIndex].Options)
+            {
+                <div>
+                    <input type="radio" id="@option" name="answers" value="@option" @onchange="OnAnswerChanged" />
+                    <label for="@option">@option</label>
+                </div>
+            }
+            <button class="btn btn-primary" @onclick="SubmitAnswer">Submit</button>
         </div>
     }
-    <p>@feedbackMessage</p>
+    else
+    {
+        <p>@feedbackMessage</p>
+    }
 </div>
+
+@code {
+    private void OnAnswerChanged(ChangeEventArgs e)
+    {
+        selectedAnswer = e.Value.ToString();
+    }
+}

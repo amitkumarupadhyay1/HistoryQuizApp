@@ -1,21 +1,29 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace HistoryQuizApp.Data
 {
     public class QuizService
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<QuizService> _logger;
 
-        public QuizService(ApplicationDbContext context)
+        public QuizService(ApplicationDbContext context, ILogger<QuizService> logger)
         {
             _context = context;
+            _logger = logger;
+        }
+
+        public async Task<List<Quiz>> GetAvailableQuizzesAsync()
+        {
+            return await _context.Quizzes.ToListAsync();
         }
 
         public async Task<Quiz> GetQuizByIdAsync(int quizId)
         {
             return await _context.Quizzes
-                .Include(q => q.Questions)
-                .FirstOrDefaultAsync(q => q.Id == quizId);
+       .Include(q => q.Questions)
+       .FirstOrDefaultAsync(q => q.Id == quizId);
         }
 
         public async Task SubmitAnswerAsync(int userId, int quizId, int questionId, string answer)
@@ -35,24 +43,33 @@ namespace HistoryQuizApp.Data
             }
 
             var question = await _context.Questions.FindAsync(questionId);
-            if (question.Answer == answer)
+            if (question.Answer.Equals(answer.Trim(), StringComparison.OrdinalIgnoreCase))
             {
                 userProgress.Score += 1; // or any scoring logic
             }
 
             await _context.SaveChangesAsync();
         }
+
         public async Task<List<Question>> GetQuestionsByDifficultyAsync(int quizId, string difficultyLevel)
         {
-            return await _context.Questions
-                .Where(q => q.Id == quizId && q.DifficultyLevel == difficultyLevel)
-                .ToListAsync();
+            try
+            {
+                return await _context.Questions
+                    .Where(q => q.Id == quizId && q.DifficultyLevel == difficultyLevel)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting questions by difficulty.");
+                throw;
+            }
         }
 
         public async Task<List<Question>> GetAdaptiveQuizAsync(int quizId, int userId)
         {
             var userProgress = await _context.UserProgresses
-                .FirstOrDefaultAsync(up => up.UserId == userId && up.QuizId == quizId);
+       .FirstOrDefaultAsync(up => up.UserId == userId && up.QuizId == quizId);
 
             string difficultyLevel = "Easy";
             if (userProgress != null)
@@ -81,6 +98,7 @@ namespace HistoryQuizApp.Data
                 await _context.SaveChangesAsync();
             }
         }
+
         public async Task<int> GetUserScoreAsync(int userId, int quizId)
         {
             var userProgress = await _context.UserProgresses
@@ -89,5 +107,4 @@ namespace HistoryQuizApp.Data
             return userProgress?.Score ?? 0;
         }
     }
-
 }
