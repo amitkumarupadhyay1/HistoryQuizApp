@@ -1,18 +1,56 @@
-﻿@page "/quiz-result/{quizId:int}"
+﻿@page "/quiz-result/{QuizId:int}"
 @using HistoryQuizApp.Data
 @inject QuizService QuizService
 
 @code {
     [Parameter] public int QuizId { get; set; }
     private int score = 0;
+    private HistoryQuizApp.Data.Quiz quiz;
+    private Dictionary<int, string> userAnswers = new Dictionary<int, string>();
 
     protected override async Task OnInitializedAsync()
     {
+        // Load the quiz and user score
+        quiz = await QuizService.GetQuizByIdAsync(QuizId);
         score = await QuizService.GetUserScoreAsync(1, QuizId); // Assuming user ID 1 for now
+                                                                // Retrieve user answers
+        userAnswers = await QuizService.GetUserAnswersAsync(1, QuizId);
     }
 }
 
 <div>
     <h3>Your Score: @score</h3>
+
+    @if (quiz != null)
+    {
+        <h4>@quiz.Title</h4>
+        <ul>
+            @foreach (var question in quiz.Questions)
+            {
+                <li>
+                    <strong>@question.Text</strong>
+                    <br />
+                    <span style="color: green; font-weight: bold;">Correct Answer: @question.Answer</span>
+                    <br />
+                    @if (userAnswers.ContainsKey(question.Id))
+                    {
+                        <span style="color: red;">Your Answer: @userAnswers[question.Id]</span>
+                        @if (question.Answer.Equals(userAnswers[question.Id], StringComparison.OrdinalIgnoreCase))
+                        {
+                            <span style="color: green;"> (Correct!)</span>
+                        }
+                        else
+                        {
+                            <span style="color: red;"> (Incorrect)</span>
+                        }
+                    }
+                    else
+                    {
+                        <span style="color: gray;">No answer provided.</span>
+                    }
+                </li>
+            }
+        </ul>
+    }
     <a href="/">Return to Home</a>
 </div>

@@ -28,28 +28,32 @@ namespace HistoryQuizApp.Data
 
         public async Task SubmitAnswerAsync(int userId, int quizId, int questionId, string answer)
         {
-            var userProgress = await _context.UserProgresses
-                .FirstOrDefaultAsync(up => up.UserId == userId && up.QuizId == quizId);
+            // Check if the user already submitted an answer for this question
+            var userAnswer = await _context.UserAnswers
+                .FirstOrDefaultAsync(ua => ua.UserId == userId && ua.QuizId == quizId && ua.QuestionId == questionId);
 
-            if (userProgress == null)
+            if (userAnswer == null)
             {
-                userProgress = new UserProgress
+                // If no previous answer exists, create a new one
+                userAnswer = new UserAnswer
                 {
                     UserId = userId,
                     QuizId = quizId,
-                    Score = 0
+                    QuestionId = questionId,
+                    SelectedAnswer = answer
                 };
-                _context.UserProgresses.Add(userProgress);
+                _context.UserAnswers.Add(userAnswer);
             }
-
-            var question = await _context.Questions.FindAsync(questionId);
-            if (question.Answer.Equals(answer.Trim(), StringComparison.OrdinalIgnoreCase))
+            else
             {
-                userProgress.Score += 1; // or any scoring logic
+                // If an answer already exists, update it
+                userAnswer.SelectedAnswer = answer;
             }
 
+            // Save changes to the database
             await _context.SaveChangesAsync();
         }
+
 
         public async Task<List<Question>> GetQuestionsByDifficultyAsync(int quizId, string difficultyLevel)
         {
@@ -105,6 +109,17 @@ namespace HistoryQuizApp.Data
                 .FirstOrDefaultAsync(up => up.UserId == userId && up.QuizId == quizId);
 
             return userProgress?.Score ?? 0;
+        }
+
+        public async Task<Dictionary<int, string>> GetUserAnswersAsync(int userId, int quizId)
+        {
+            // Fetch all user answers for the specific quiz
+            var userAnswers = await _context.UserAnswers
+                .Where(ua => ua.UserId == userId && ua.QuizId == quizId)
+                .ToListAsync();
+
+            // Return a dictionary with questionId as key and selected answer as value
+            return userAnswers.ToDictionary(ua => ua.QuestionId, ua => ua.SelectedAnswer);
         }
     }
 }
