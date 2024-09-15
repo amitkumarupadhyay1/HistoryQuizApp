@@ -1,4 +1,6 @@
 ﻿@page "/quiz-result/{QuizId:int}"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
 @using HistoryQuizApp.Data
 @inject QuizService QuizService
 

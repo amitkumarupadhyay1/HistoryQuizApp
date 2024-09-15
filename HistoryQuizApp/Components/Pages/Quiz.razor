@@ -1,4 +1,6 @@
 ﻿@page "/quiz"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
 @rendermode InteractiveServer
 @using HistoryQuizApp.Data
 @inject QuizService QuizService
