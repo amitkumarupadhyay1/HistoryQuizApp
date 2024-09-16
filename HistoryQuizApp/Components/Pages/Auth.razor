@@ -1,6 +1,11 @@
 ﻿@page "/auth"
 @using Microsoft.AspNetCore.Authorization
 @rendermode InteractiveServer
+@using HistoryQuizApp.Data
+@using Microsoft.AspNetCore.Components.Authorization
+@inject QuizService QuizService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @attribute [Authorize]
 
 <PageTitle>Auth</PageTitle>
@@ -10,7 +15,7 @@
         <div class="card-body">
             <AuthorizeView>
                 <Authorized>
-                    <h5 class="card-subtitle mb-2 text-muted">Hello @context.User.Identity?.Name!</h5>
+                    <h5 class="card-subtitle mb-2 text-muted">Hello @userName!</h5>
                     <h4>Welcome to your Dashboard</h4>
 
                     <div class="d-flex justify-content-start mb-5">
@@ -27,6 +32,45 @@
                             <a href="/delete-quiz" class="btn btn-danger">Delete Quiz</a>
                         </div>
                     </div>
+
+                    <!-- Display list of quizzes -->
+                    <h4>Your Quizzes</h4>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Number of Questions</th>
+                                <th>Created By</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (quizzes != null && quizzes.Any())
+                            {
+                                @foreach (var quiz in quizzes)
+                                {
+                                    <tr>
+                                        <td>@quiz.Title</td>
+                                        <td>@quiz.Questions.Count</td>
+                                        <td>@quiz.CreatedByUserId</td>
+                                        <td>@quiz.CreatedDate.ToShortDateString()</td>
+                                        <td>@(quiz.IsPublished ? "Published" : "Draft")</td>
+                                        <td>
+                                            <button class="btn btn-info" @onclick="() => NavigateToAddQuestion(quiz.Id)">Add Questions</button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="6">No quizzes available.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </Authorized>
                 <NotAuthorized>
                     <p class="card-text">You are not authorized to access this page.</p>
@@ -35,3 +79,26 @@
         </div>
     </div>
 </div>
+
+@code {
+    private List<HistoryQuizApp.Data.Quiz> quizzes;
+    private string userName = "User"; // Default value
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            userName = user.Identity.Name; // Get the user’s name
+        }
+
+        quizzes = await QuizService.GetAvailableQuizzesAsync(); // Fetch quizzes for the logged-in user
+    }
+
+    private void NavigateToAddQuestion(int quizId)
+    {
+        NavigationManager.NavigateTo($"/add-questions/");
+    }
+}

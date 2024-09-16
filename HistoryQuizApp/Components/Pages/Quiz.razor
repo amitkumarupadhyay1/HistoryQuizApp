@@ -3,22 +3,28 @@
 @attribute [Authorize]
 @rendermode InteractiveServer
 @using HistoryQuizApp.Data
+@using System.Security.Claims
 @inject QuizService QuizService
 @inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 @code {
     private HistoryQuizApp.Data.Quiz quiz;
     private int currentQuestionIndex = 0;
-    private string selectedAnswer;
+    private string? selectedAnswer;
     private int score = 0;
-    private string feedbackMessage;
+    private string? feedbackMessage;
     private List<HistoryQuizApp.Data.Quiz> availableQuizzes;
     private int selectedQuizId;
+    private string? currentUserId;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            currentUserId = authState.User.FindFirst(c => c.Type == ClaimTypes.NameIdentifier).Value;
+
             // Retrieve the list of available quizzes
             availableQuizzes = await QuizService.GetAvailableQuizzesAsync();
             if (availableQuizzes == null || !availableQuizzes.Any())
@@ -75,6 +81,7 @@
             }
 
             var currentQuestion = quiz.Questions[currentQuestionIndex];
+            bool isCorrect = false;
 
             if (string.IsNullOrWhiteSpace(selectedAnswer))
             {
@@ -82,11 +89,17 @@
                 return;
             }
 
-            bool isCorrect = currentQuestion.Answer.Equals(selectedAnswer, StringComparison.OrdinalIgnoreCase);
-            feedbackMessage = isCorrect ? "Correct!" : $"Incorrect. The correct answer is {currentQuestion.Answer}.";
+            // Check if the selected answer matches any of the correct answers
+            int selectedOptionIndex = quiz.Questions[currentQuestionIndex].Options.IndexOf(selectedAnswer);
+            if (selectedOptionIndex >= 0 && selectedOptionIndex < currentQuestion.CorrectAnswers.Count)
+            {
+                isCorrect = currentQuestion.CorrectAnswers[selectedOptionIndex];
+            }
 
-            await QuizService.SubmitAnswerAsync(1, quiz.Id, currentQuestion.Id, selectedAnswer.Trim());
-            score = await QuizService.GetUserScoreAsync(1, quiz.Id);
+            feedbackMessage = isCorrect ? "Correct!" : $"Incorrect. The correct answer is {GetCorrectAnswers(currentQuestion)}.";
+
+            await QuizService.SubmitAnswerAsync(currentUserId, quiz.Id, currentQuestion.Id, selectedAnswer.Trim());
+            score = await QuizService.GetUserScoreAsync(currentUserId, quiz.Id);
 
             // Move to the next question
             currentQuestionIndex++;
@@ -107,6 +120,19 @@
         {
             feedbackMessage = $"Error submitting answer: {ex.Message}";
         }
+    }
+
+    private string GetCorrectAnswers(HistoryQuizApp.Data.Question question)
+    {
+        var correctOptions = new List<string>();
+        for (int i = 0; i < question.Options.Count; i++)
+        {
+            if (question.CorrectAnswers[i])
+            {
+                correctOptions.Add(question.Options[i]);
+            }
+        }
+        return string.Join(", ", correctOptions);
     }
 
     private async Task OnQuizSelectionChanged(ChangeEventArgs e)
@@ -135,8 +161,8 @@
             @foreach (var option in quiz.Questions[currentQuestionIndex].Options)
             {
                 <div>
-                    <input type="radio" id="@option" name="answers" value="@option" @onchange="OnAnswerChanged" />
-                    <label for="@option">@option</label>
+                    <input type="radio" id="option_@option" name="answers" value="@option" @onchange="OnAnswerChanged" />
+                    <label for="option_@option">@option</label>
                 </div>
             }
             <button class="btn btn-primary" @onclick="SubmitAnswer">Submit</button>

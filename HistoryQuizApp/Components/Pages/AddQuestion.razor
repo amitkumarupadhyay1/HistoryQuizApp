@@ -1,0 +1,122 @@
+﻿@page "/add-questions"
+@using HistoryQuizApp.Data
+@rendermode InteractiveServer
+@inject QuizService QuizService
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+<h3>Add Questions</h3>
+
+@if (availableQuizzes != null && availableQuizzes.Any())
+{
+    <div>
+        <label for="quizSelect">Select Quiz:</label>
+        <select id="quizSelect" @onchange="OnQuizSelected">
+            @foreach (var quiz in availableQuizzes)
+            {
+                <option value="@quiz.Id">@quiz.Title</option>
+            }
+        </select>
+    </div>
+
+    @if (selectedQuiz != null)
+    {
+        <div>
+            <h4>Adding questions to @selectedQuiz.Title</h4>
+            <EditForm Model="@newQuestion" OnValidSubmit="AddQueston">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div>
+                    <label for="questionText">Question:</label>
+                    <InputText id="questionText" class="form-control" @bind-Value="newQuestion.Text" />
+                </div>
+
+                <div>
+                    @for (int i = 0; i < 4; i++)
+                    {
+                        <div>
+                            <label for="@($"option_{i}")">Option @(i + 1):</label>
+                            <InputText id="@($"option_{i}")" class="form-control" @bind-Value="tempOptions[i]" @key="@($"option_{i}")" />
+                            <InputCheckbox id="@($"correct_{i}")" @bind-Value="newQuestion.CorrectAnswers[i]" @key="@($"correct_{i}")" />
+                            <label for="@($"correct_{i}")">Correct</label>
+                        </div>
+                    }
+                </div>
+
+                <div>
+                    <label for="difficultyLevel">Difficulty Level:</label>
+                    <select id="difficultyLevel" class="form-control" @bind="newQuestion.DifficultyLevel">
+                        <option value="">Select Difficulty</option>
+                        <option value="Easy">Easy</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Hard">Hard</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Add Question</button>
+                <button @onclick="NavigateToHome" class="btn btn-secondary">Cancel</button>
+            </EditForm>
+        </div>
+    }
+    else
+    {
+        <p>Please select a quiz to add questions.</p>
+    }
+}
+else
+{
+    <p>Loading quizzes...</p>
+}
+
+@code {
+    private List<HistoryQuizApp.Data.Quiz> availableQuizzes;
+    private HistoryQuizApp.Data.Quiz selectedQuiz;
+    private Question newQuestion = new Question
+        {
+            Options = new List<string> { "", "", "", "" },
+            CorrectAnswers = new List<bool> { false, false, false, false }
+        };
+    private List<string> tempOptions = new List<string> { "", "", "", "" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        availableQuizzes = await QuizService.GetAvailableQuizzesAsync();
+    }
+
+    private async Task OnQuizSelected(ChangeEventArgs e)
+    {
+        var quizId = int.Parse(e.Value.ToString());
+        selectedQuiz = await QuizService.GetQuizByIdAsync(quizId);
+    }
+
+    private async Task AddQueston()
+    {
+        newQuestion.Options = tempOptions.Select(opt => opt?.Trim()).ToList();
+
+        if (selectedQuiz != null && newQuestion.Options.Count == 4 && newQuestion.CorrectAnswers.Count == 4)
+        {
+            await QuizService.AddQuestionToQuizAsync(selectedQuiz.Id, newQuestion);
+            newQuestion = new Question
+                {
+                    Options = new List<string> { "", "", "", "" },
+                    CorrectAnswers = new List<bool> { false, false, false, false }
+                };
+            tempOptions = new List<string> { "", "", "", "" };
+        }
+        else
+        {
+            // Handle validation error: must have exactly 4 options and corresponding correct answers
+        }
+    }
+
+    private void NavigateToHome()
+    {
+        NavigationManager.NavigateTo("/auth");
+    }
+
+    public void Dispose()
+    {
+        // Dispose of resources here
+    }
+}

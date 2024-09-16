@@ -14,9 +14,9 @@
     {
         // Load the quiz and user score
         quiz = await QuizService.GetQuizByIdAsync(QuizId);
-        score = await QuizService.GetUserScoreAsync(1, QuizId); // Assuming user ID 1 for now
-                                                                // Retrieve user answers
-        userAnswers = await QuizService.GetUserAnswersAsync(1, QuizId);
+        score = await QuizService.GetUserScoreAsync("a", QuizId); // Assuming user ID "a" for now
+                                                                  // Retrieve user answers
+        userAnswers = await QuizService.GetUserAnswersAsync("a", QuizId);
     }
 }
 
@@ -32,12 +32,12 @@
                 <li>
                     <strong>@question.Text</strong>
                     <br />
-                    <span style="color: green; font-weight: bold;">Correct Answer: @question.Answer</span>
+                    <span style="color: green; font-weight: bold;">Correct Answer: @GetCorrectAnswer(question)</span>
                     <br />
                     @if (userAnswers.ContainsKey(question.Id))
                     {
                         <span style="color: red;">Your Answer: @userAnswers[question.Id]</span>
-                        @if (question.Answer.Equals(userAnswers[question.Id], StringComparison.OrdinalIgnoreCase))
+                        @if (IsAnswerCorrect(question, userAnswers[question.Id]))
                         {
                             <span style="color: green;"> (Correct!)</span>
                         }
@@ -56,3 +56,23 @@
     }
     <a href="/">Return to Home</a>
 </div>
+
+@code {
+    private string GetCorrectAnswer(Question question)
+    {
+        var correctOptions = question.Options
+            .Where((option, index) => question.CorrectAnswers[index])
+            .ToList();
+
+        return string.Join(", ", correctOptions);
+    }
+
+    private bool IsAnswerCorrect(Question question, string userAnswer)
+    {
+        var correctOptions = question.Options
+            .Where((option, index) => question.CorrectAnswers[index])
+            .ToHashSet();
+
+        return correctOptions.Contains(userAnswer);
+    }
+}

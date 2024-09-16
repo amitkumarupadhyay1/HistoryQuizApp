@@ -11,6 +11,7 @@ namespace HistoryQuizApp.Data
         public DbSet<UserProgress> UserProgresses { get; set; }
         public DbSet<UserAnswer> UserAnswers { get; set; }
         public DbSet<Badge> Badges{ get; set; }
+        public DbSet<QuizCollaborator> QuizCollaborators { get; set; }
     }
 
 }
