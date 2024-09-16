@@ -33,15 +33,33 @@
                 </div>
 
                 <div>
-                    @for (int i = 0; i < 4; i++)
-                    {
-                        <div>
-                            <label for="@($"option_{i}")">Option @(i + 1):</label>
-                            <InputText id="@($"option_{i}")" class="form-control" @bind-Value="tempOptions[i]" @key="@($"option_{i}")" />
-                            <InputCheckbox id="@($"correct_{i}")" @bind-Value="newQuestion.CorrectAnswers[i]" @key="@($"correct_{i}")" />
-                            <label for="@($"correct_{i}")">Correct</label>
-                        </div>
-                    }
+                    <div>
+                        <label for="option_1">Option 1:</label>
+                        <InputText id="option_1" class="form-control" @bind-Value="tempOptions[0]" />
+                        <InputCheckbox id="correct_1" @bind-Value="newQuestion.CorrectAnswers[0]" />
+                        <label for="correct_1">Correct</label>
+                    </div>
+
+                    <div>
+                        <label for="option_2">Option 2:</label>
+                        <InputText id="option_2" class="form-control" @bind-Value="tempOptions[1]" />
+                        <InputCheckbox id="correct_2" @bind-Value="newQuestion.CorrectAnswers[1]" />
+                        <label for="correct_2">Correct</label>
+                    </div>
+
+                    <div>
+                        <label for="option_3">Option 3:</label>
+                        <InputText id="option_3" class="form-control" @bind-Value="tempOptions[2]" />
+                        <InputCheckbox id="correct_3" @bind-Value="newQuestion.CorrectAnswers[2]" />
+                        <label for="correct_3">Correct</label>
+                    </div>
+
+                    <div>
+                        <label for="option_4">Option 4:</label>
+                        <InputText id="option_4" class="form-control" @bind-Value="tempOptions[3]" />
+                        <InputCheckbox id="correct_4" @bind-Value="newQuestion.CorrectAnswers[3]" />
+                        <label for="correct_4">Correct</label>
+                    </div>
                 </div>
 
                 <div>
@@ -56,6 +74,7 @@
 
                 <button type="submit" class="btn btn-primary">Add Question</button>
                 <button @onclick="NavigateToHome" class="btn btn-secondary">Cancel</button>
+                <button @onclick="NavigateToAuth" class="btn btn-secondary">Go Back to Dashboard</button>
             </EditForm>
         </div>
     }
@@ -111,6 +130,10 @@ else
     }
 
     private void NavigateToHome()
+    {
+        NavigationManager.NavigateTo("/add-questions");
+    }
+    private void NavigateToAuth()
     {
         NavigationManager.NavigateTo("/auth");
     }

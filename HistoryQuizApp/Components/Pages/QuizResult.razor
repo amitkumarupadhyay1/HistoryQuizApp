@@ -3,20 +3,34 @@
 @attribute [Authorize]
 @using HistoryQuizApp.Data
 @inject QuizService QuizService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 @code {
     [Parameter] public int QuizId { get; set; }
     private int score = 0;
     private HistoryQuizApp.Data.Quiz quiz;
     private Dictionary<int, string> userAnswers = new Dictionary<int, string>();
+    private string userId;
 
     protected override async Task OnInitializedAsync()
     {
+        // Get the current user
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            userId = user.FindFirst(c => c.Type == "sub")?.Value; // Assuming user ID is stored in the 'sub' claim
+        }
+
         // Load the quiz and user score
         quiz = await QuizService.GetQuizByIdAsync(QuizId);
-        score = await QuizService.GetUserScoreAsync("a", QuizId); // Assuming user ID "a" for now
-                                                                  // Retrieve user answers
-        userAnswers = await QuizService.GetUserAnswersAsync("a", QuizId);
+
+        if (!string.IsNullOrEmpty(userId))
+        {
+            score = await QuizService.GetUserScoreAsync(userId, QuizId); // Pass current user ID
+            userAnswers = await QuizService.GetUserAnswersAsync(userId, QuizId); // Retrieve user answers
+        }
     }
 }
 
