@@ -1,0 +1,98 @@
+﻿@page "/delete-quiz"
+@using HistoryQuizApp.Data
+@inject QuizService QuizService
+@rendermode InteractiveServer
+@inject NavigationManager NavigationManager
+
+<h3>Delete Quiz</h3>
+
+@if (availableQuizzes != null && availableQuizzes.Any())
+{
+    <select @onchange="OnQuizSelected">
+        @foreach (var quiz in availableQuizzes)
+        {
+            <option value="@quiz.Id">@quiz.Title</option>
+        }
+    </select>
+}
+else
+{
+    <p>Loading quizzes...</p>
+}
+
+<div>
+    @if (selectedQuiz != null)
+    {
+        <input type="text" @bind="selectedQuiz.Title" />
+        <button @onclick="DeleteQuz">Delete Quiz</button>
+    }
+    else
+    {
+        <p>Select a quiz to edit.</p>
+    }
+</div>
+
+@code {
+    private List<HistoryQuizApp.Data.Quiz> availableQuizzes;
+    private HistoryQuizApp.Data.Quiz selectedQuiz;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            availableQuizzes = await QuizService.GetAvailableQuizzesAsync();
+            if (availableQuizzes == null)
+            {
+                availableQuizzes = new List<HistoryQuizApp.Data.Quiz>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching quizzes: {ex.Message}");
+            availableQuizzes = new List<HistoryQuizApp.Data.Quiz>(); // Initialize to prevent further null reference issues
+        }
+    }
+
+    private async Task OnQuizSelected(ChangeEventArgs e)
+    {
+        try
+        {
+            if (int.TryParse(e.Value.ToString(), out var quizId))
+            {
+                selectedQuiz = await QuizService.GetQuizByIdAsync(quizId);
+                if (selectedQuiz == null)
+                {
+                    Console.WriteLine("Selected quiz is null.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid quiz ID.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching quiz: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteQuz()
+    {
+        if (selectedQuiz != null)
+        {
+            try
+            {
+                await QuizService.DeleteQuizAsync(selectedQuiz.Id);
+                NavigationManager.NavigateTo("/auth");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting quiz: {ex.Message}");
+            }
+        }
+        else
+        {
+            Console.WriteLine("No quiz selected.");
+        }
+    }
+}

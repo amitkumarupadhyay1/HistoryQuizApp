@@ -1,0 +1,26 @@
+﻿@page "/create-quiz"
+@using HistoryQuizApp.Data
+@inject QuizService QuizService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+
+<h3>Create a New Quiz</h3>
+
+<div>
+    <label for="quizTitle">Quiz Title:</label>
+    <input type="text" id="quizTitle" @bind="quizTitle" />
+
+    <button @onclick="CreateQuz">Create Quiz</button>
+</div>
+
+@code {
+    private string quizTitle;
+
+    private async Task CreateQuz()
+    {
+        var quiz = new HistoryQuizApp.Data.Quiz { Title = quizTitle };
+        await QuizService.CreateQuizAsync(quiz);
+        NavigationManager.NavigateTo("/auth"); // Redirect to dashboard after creation
+    }
+}

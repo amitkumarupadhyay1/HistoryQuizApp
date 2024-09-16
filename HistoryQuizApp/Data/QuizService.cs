@@ -121,5 +121,27 @@ namespace HistoryQuizApp.Data
             // Return a dictionary with questionId as key and selected answer as value
             return userAnswers.ToDictionary(ua => ua.QuestionId, ua => ua.SelectedAnswer);
         }
+
+        public async Task CreateQuizAsync(Quiz quiz)
+        {
+            _context.Quizzes.Add(quiz);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateQuizAsync(Quiz quiz)
+        {
+            _context.Quizzes.Update(quiz);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteQuizAsync(int quizId)
+        {
+            var quiz = await _context.Quizzes.FindAsync(quizId);
+            if (quiz != null)
+            {
+                _context.Quizzes.Remove(quiz);
+                await _context.SaveChangesAsync();
+            }
+        }
     }
 }

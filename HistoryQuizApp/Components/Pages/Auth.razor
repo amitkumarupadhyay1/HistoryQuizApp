@@ -1,18 +1,37 @@
 ﻿@page "/auth"
-
 @using Microsoft.AspNetCore.Authorization
-
+@rendermode InteractiveServer
 @attribute [Authorize]
 
 <PageTitle>Auth</PageTitle>
+<h1 class="card-title">Welcome to the Quiz App</h1>
+<div class="container mt-5">
+    <div class="card">
+        <div class="card-body">
+            <AuthorizeView>
+                <Authorized>
+                    <h5 class="card-subtitle mb-2 text-muted">Hello @context.User.Identity?.Name!</h5>
+                    <h4>Welcome to your Dashboard</h4>
 
-<h1>You are authenticated</h1>
-
-<AuthorizeView>
-    Hello @context.User.Identity?.Name!
-    <h3>Welcome to your Dashboard</h3>
-
-    <p>
-        <a href="/quiz">Attempt Quiz</a>
-    </p>
-</AuthorizeView>
+                    <div class="d-flex justify-content-start mb-5">
+                        <div class="nav-item px-3 me-2">
+                            <a href="/quiz" class="btn btn-success">Attempt Quiz</a>
+                        </div>
+                        <div class="nav-item px-3 me-2">
+                            <a href="/create-quiz" class="btn btn-primary">Create Quiz</a>
+                        </div>
+                        <div class="nav-item px-3 me-2">
+                            <a href="/edit-quiz" class="btn btn-warning">Edit Quiz</a>
+                        </div>
+                        <div class="nav-item px-3">
+                            <a href="/delete-quiz" class="btn btn-danger">Delete Quiz</a>
+                        </div>
+                    </div>
+                </Authorized>
+                <NotAuthorized>
+                    <p class="card-text">You are not authorized to access this page.</p>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+    </div>
+</div>
